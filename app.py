@@ -3,82 +3,6 @@ import pandas as pd
 import numpy as np
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
-import requests
-
-from dotenv import load_dotenv
-
-load_dotenv()
-
-
-import os
-
-TMDB_API_KEY = os.getenv("TMDB_API_KEY")
-
-TMDB_IMAGE_BASE_URL = "https://image.tmdb.org/t/p/w500"
-
-
-def fetch_movie_poster(movie_title):
-    import time
-    
-    session = requests.Session()
-    session.headers.update({
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
-    })
-    
-    for attempt in range(3):
-        try:
-            search_url = "https://api.themoviedb.org/3/search/movie"
-            params = {"api_key": TMDB_API_KEY, "query": movie_title, "language": "en-US"}
-
-            response = session.get(search_url, params=params, timeout=30)
-
-            if response.status_code == 200:
-                data = response.json()
-                results = data.get("results", [])
-
-                if results:
-                    movie = results[0]
-                    poster_path = movie.get("poster_path")
-
-                    if poster_path:
-                        return TMDB_IMAGE_BASE_URL + poster_path
-                    return None
-                return None
-            elif response.status_code == 401:
-                st.error("Invalid API key. Check your .env file.")
-                return None
-            else:
-                if attempt < 2:
-                    time.sleep(2)
-                    continue
-                return None
-
-        except Exception as e:
-            if attempt < 2:
-                time.sleep(2)
-                continue
-            st.error(f"Connection error. Check your internet/firewall.")
-            return None
-    
-    return None
-                return None
-            elif response.status_code == 401:
-                st.error("Invalid API key. Check your .env file.")
-                return None
-            else:
-                if attempt < 2:
-                    time.sleep(1)
-                    continue
-                return None
-
-        except Exception as e:
-            if attempt < 2:
-                time.sleep(1)
-                continue
-            st.error(f"Connection error: {str(e)}")
-            return None
-
-    return None
 
 
 st.set_page_config(page_title="Movie Recommendation System", layout="centered")
@@ -87,7 +11,6 @@ st.title("Movie Recommendation System")
 st.write("Get movie recommendations based on similar content.")
 
 
-# Load dataset
 @st.cache_data
 def load_data():
     df = pd.read_csv("data/tmdb_5000_movies.csv")
@@ -100,7 +23,6 @@ def load_data():
 df = load_data()
 
 
-# TF-IDF Vectorization
 @st.cache_data
 def compute_similarity(data):
     tfidf = TfidfVectorizer(stop_words="english")
@@ -111,7 +33,6 @@ def compute_similarity(data):
 
 cosine_sim = compute_similarity(df)
 
-# Movie index mapping
 indices = pd.Series(df.index, index=df["title"]).drop_duplicates()
 
 
@@ -127,7 +48,6 @@ num_recs = st.slider(
 )
 
 
-# Recommendation function
 def recommend_movies(movie_title, num_recommendations=5):
     if movie_title not in indices:
         return []
@@ -141,18 +61,10 @@ def recommend_movies(movie_title, num_recommendations=5):
     return df["title"].iloc[movie_indices]
 
 
-# User input
 movie_name = st.selectbox("Select a movie", sorted(df["title"].unique()))
 
 st.subheader("Movie Overview")
 st.write(get_movie_overview(movie_name))
-
-poster_url = fetch_movie_poster(movie_name)
-
-if poster_url:
-    st.image(poster_url, width=300)
-else:
-    st.info("Poster not available")
 
 recommendations = recommend_movies(movie_name, num_recs)
 

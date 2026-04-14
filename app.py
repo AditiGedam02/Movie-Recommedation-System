@@ -18,35 +18,48 @@ TMDB_IMAGE_BASE_URL = "https://image.tmdb.org/t/p/w500"
 
 
 def fetch_movie_poster(movie_title):
-    try:
-        search_url = "https://api.themoviedb.org/3/search/movie"
-        params = {"api_key": TMDB_API_KEY, "query": movie_title, "language": "en-US"}
+    import time
 
-        response = requests.get(search_url, params=params, timeout=15)
+    for attempt in range(3):
+        try:
+            search_url = "https://api.themoviedb.org/3/search/movie"
+            params = {
+                "api_key": TMDB_API_KEY,
+                "query": movie_title,
+                "language": "en-US",
+            }
 
-        if response.status_code != 200:
-            st.error(f"API error: {response.status_code}")
+            response = requests.get(search_url, params=params, timeout=30)
+
+            if response.status_code == 200:
+                data = response.json()
+                results = data.get("results", [])
+
+                if results:
+                    movie = results[0]
+                    poster_path = movie.get("poster_path")
+
+                    if poster_path:
+                        return TMDB_IMAGE_BASE_URL + poster_path
+                    return None
+                return None
+            elif response.status_code == 401:
+                st.error("Invalid API key. Check your .env file.")
+                return None
+            else:
+                if attempt < 2:
+                    time.sleep(1)
+                    continue
+                return None
+
+        except Exception as e:
+            if attempt < 2:
+                time.sleep(1)
+                continue
+            st.error(f"Connection error: {str(e)}")
             return None
 
-        data = response.json()
-        results = data.get("results", [])
-
-        if not results:
-            st.warning(f"No results found for: {movie_title}")
-            return None
-
-        movie = results[0]
-        poster_path = movie.get("poster_path")
-
-        if poster_path:
-            return TMDB_IMAGE_BASE_URL + poster_path
-
-        st.warning("No poster available for this movie")
-        return None
-
-    except Exception as e:
-        st.error(f"Error fetching poster: {str(e)}")
-        return None
+    return None
 
 
 st.set_page_config(page_title="Movie Recommendation System", layout="centered")

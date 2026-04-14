@@ -17,32 +17,35 @@ TMDB_API_KEY = os.getenv("TMDB_API_KEY")
 TMDB_IMAGE_BASE_URL = "https://image.tmdb.org/t/p/w500"
 
 
-@st.cache_data(show_spinner=False)
 def fetch_movie_poster(movie_title):
     try:
         search_url = "https://api.themoviedb.org/3/search/movie"
         params = {"api_key": TMDB_API_KEY, "query": movie_title, "language": "en-US"}
 
-        response = requests.get(
-            search_url, params=params, timeout=10, headers={"User-Agent": "Mozilla/5.0"}
-        )
+        response = requests.get(search_url, params=params, timeout=15)
 
         if response.status_code != 200:
+            st.error(f"API error: {response.status_code}")
             return None
 
         data = response.json()
+        results = data.get("results", [])
 
-        if not data.get("results"):
+        if not results:
+            st.warning(f"No results found for: {movie_title}")
             return None
 
-        movie = data["results"][0]
+        movie = results[0]
         poster_path = movie.get("poster_path")
 
         if poster_path:
             return TMDB_IMAGE_BASE_URL + poster_path
+
+        st.warning("No poster available for this movie")
         return None
 
-    except Exception:
+    except Exception as e:
+        st.error(f"Error fetching poster: {str(e)}")
         return None
 
 

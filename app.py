@@ -19,17 +19,18 @@ TMDB_IMAGE_BASE_URL = "https://image.tmdb.org/t/p/w500"
 
 def fetch_movie_poster(movie_title):
     import time
-
+    
+    session = requests.Session()
+    session.headers.update({
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
+    })
+    
     for attempt in range(3):
         try:
             search_url = "https://api.themoviedb.org/3/search/movie"
-            params = {
-                "api_key": TMDB_API_KEY,
-                "query": movie_title,
-                "language": "en-US",
-            }
+            params = {"api_key": TMDB_API_KEY, "query": movie_title, "language": "en-US"}
 
-            response = requests.get(search_url, params=params, timeout=30)
+            response = session.get(search_url, params=params, timeout=30)
 
             if response.status_code == 200:
                 data = response.json()
@@ -42,6 +43,24 @@ def fetch_movie_poster(movie_title):
                     if poster_path:
                         return TMDB_IMAGE_BASE_URL + poster_path
                     return None
+                return None
+            elif response.status_code == 401:
+                st.error("Invalid API key. Check your .env file.")
+                return None
+            else:
+                if attempt < 2:
+                    time.sleep(2)
+                    continue
+                return None
+
+        except Exception as e:
+            if attempt < 2:
+                time.sleep(2)
+                continue
+            st.error(f"Connection error. Check your internet/firewall.")
+            return None
+    
+    return None
                 return None
             elif response.status_code == 401:
                 st.error("Invalid API key. Check your .env file.")

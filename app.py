@@ -18,34 +18,32 @@ TMDB_IMAGE_BASE_URL = "https://image.tmdb.org/t/p/w500"
 
 
 @st.cache_data(show_spinner=False)
-def fetch_movie_details(movie_title):
+def fetch_movie_poster(movie_title):
     try:
         search_url = "https://api.themoviedb.org/3/search/movie"
         params = {"api_key": TMDB_API_KEY, "query": movie_title, "language": "en-US"}
 
         response = requests.get(
-            search_url, params=params, timeout=5, headers={"User-Agent": "Mozilla/5.0"}
+            search_url, params=params, timeout=10, headers={"User-Agent": "Mozilla/5.0"}
         )
 
         if response.status_code != 200:
-            return None, None, None
+            return None
 
         data = response.json()
 
         if not data.get("results"):
-            return None, None, None
+            return None
 
         movie = data["results"][0]
         poster_path = movie.get("poster_path")
-        rating = movie.get("vote_average")
-        release_date = movie.get("release_date")
 
-        poster_url = TMDB_IMAGE_BASE_URL + poster_path if poster_path else None
-
-        return poster_url, rating, release_date
+        if poster_path:
+            return TMDB_IMAGE_BASE_URL + poster_path
+        return None
 
     except Exception:
-        return None, None, None
+        return None
 
 
 st.set_page_config(page_title="Movie Recommendation System", layout="centered")
@@ -114,22 +112,12 @@ st.subheader("Movie Overview")
 st.write(get_movie_overview(movie_name))
 
 if st.button("Load Movie Details"):
-    poster_url, rating, release_date = fetch_movie_details(movie_name)
+    poster_url = fetch_movie_poster(movie_name)
 
     if poster_url:
         st.image(poster_url, width=300)
     else:
         st.info("Poster not available")
-
-    if rating:
-        st.markdown(f"**TMDB Rating:** {rating}/10")
-    else:
-        st.markdown("**TMDB Rating:** N/A")
-
-    if release_date:
-        st.markdown(f"**Release Date:** {release_date}")
-    else:
-        st.markdown("**Release Date:** N/A")
 
 
 if st.button("Recommend"):

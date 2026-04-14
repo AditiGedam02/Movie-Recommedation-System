@@ -108,24 +108,19 @@ def recommend_movies(movie_title, num_recommendations=5):
 
 # User input
 movie_name = st.selectbox("Select a movie", sorted(df["title"].unique()))
+
 st.subheader("Movie Overview")
 st.write(get_movie_overview(movie_name))
 
-if st.button("Load Movie Details"):
-    poster_url = fetch_movie_poster(movie_name)
+poster_url = fetch_movie_poster(movie_name)
 
-    if poster_url:
-        st.image(poster_url, width=300)
-    else:
-        st.info("Poster not available")
+if poster_url:
+    st.image(poster_url, width=300)
+else:
+    st.info("Poster not available")
 
+recommendations = recommend_movies(movie_name, num_recs)
 
-if st.button("Recommend"):
-    recommendations = recommend_movies(movie_name, num_recs)
-
-    st.subheader("Recommended Movies:")
-    for movie in recommendations:
-        st.write("--", movie)
-
-
-st.write("TMDB API Key loaded:", TMDB_API_KEY is not None)
+st.subheader("Recommended Movies:")
+for movie in recommendations:
+    st.write("--", movie)
